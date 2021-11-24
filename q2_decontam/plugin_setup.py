@@ -43,7 +43,7 @@ plugin.register_semantic_types(Greeting, Filter, BatchSet, FeatureTableBatches)
 
 plugin.register_formats(GreetingFormat, GreetingDirectoryFormat,
                         FilterFormat, FilterDirectoryFormat,
-                        YamlDirectoryFormat)
+                        YamlDirectoryFormat, SampleBatchesDirFmt)
 
 plugin.register_semantic_type_to_format(
     FeatureData[Filter], FilterDirectoryFormat)
@@ -90,11 +90,10 @@ plugin.methods.register_function(
 T=TypeMatch([Frequency, RelativeFrequency])
 plugin.pipelines.register_function(
     function=split_samples,
-    inputs={'table':
-            FeatureTable[T]},
+    inputs={'table': FeatureTable[T]},
     parameters={'sample_metadata': Metadata,
                 'batch_types':List[Str]},
-    outputs=[FeatureTableBatches[T]],
+    outputs=[('feature_tables_by_batch', FeatureTableBatches[T])],
     name='',
     description=''
 )

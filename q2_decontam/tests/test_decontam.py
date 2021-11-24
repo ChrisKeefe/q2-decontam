@@ -16,7 +16,7 @@ import unittest
 
 import qiime2
 from qiime2.plugin.testing import TestPluginBase
-from qiime2 import Metadata, Artifact
+from qiime2 import Artifact
 import numpy as np
 import pandas as pd
 import biom
@@ -60,7 +60,7 @@ class TestsPreprocessing(TestPluginBase):
     def setUp(self):
         super().setUp()
         table = self.get_data_path('feature_table_test.biom')
-        self.table = Artifact.import_data('FeatureTable[Frequency]',table)
+        self.table = Artifact.import_data('FeatureTable[Frequency]', table)
 
         self.split_batches = self.plugin.actions['split_batches']
         self.split_samples = self.plugin.actions['split_samples']
@@ -121,17 +121,18 @@ class TestsPreprocessing(TestPluginBase):
 
     def test_split_samples_single(self):
 
-        data = qiime2.Metadata(pd.DataFrame(
+        md = qiime2.Metadata(pd.DataFrame(
             {'extraction': ['1', '1', '1', np.nan, np.nan, np.nan],
              'amplification': ['1', '1', '1', '2', '2', '2']},
             index=pd.Index(['sample1', 'sample2', 'sample3', 'sample4',
                             'sample5', 'sample6'], name='sampleid')))
 
-        actual = self.split_samples(self.table, data,
-                                    ['extraction'])
+        actual, = self.split_samples(table=self.table, sample_metadata=md,
+                                    batch_types=['extraction'])
 
         e_table = self.get_data_path('amplification_1.biom')
-        expected = Artifact.import_data('FeatureTable[Frequency]',e_table)
+        print(e_table)
+        expected = Artifact.import_data('FeatureTable[Frequency]', e_table)
         #TODO write out biom table see https://github.com/qiime2/q2-feature-table/blob/master/q2_feature_table/tests/test_core_features.py
 
         self.assertEqual(actual.view(biom.Table), expected.view(biom.Table))
