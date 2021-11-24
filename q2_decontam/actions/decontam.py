@@ -115,7 +115,7 @@ def split_samples(ctx, table, sample_metadata, batch_types):
     split_batches = ctx.get_action('decontam', 'split_batches') #give semantic type
 
     # get batches of sample IDs - BatchSet:YAML, write test to test return type based on q2 action split batches rather than the python
-    batches = split_batches(sample_metadata, batch_types)
+    batches, = split_batches(sample_metadata, batch_types)
     batch_dict = batches.view(dict)
 
     result = SampleBatchesDirFmt()
@@ -123,10 +123,13 @@ def split_samples(ctx, table, sample_metadata, batch_types):
     for batch, ids in batch_dict.items():
         if ids:
             df = pd.DataFrame(index=pd.Series(ids, name='ids'))
-            # make/get metadata argument from the df
-            filtered_table, = filter_samples(table=table, metadata=ids,)
+            # make the list of IDs into a Metadata for filter_samples
+            id_md = qiime2.Metadata(
+                pd.DataFrame(index=pd.Index(ids, name='sampleid')))
+            filtered_table, = filter_samples(table=table, metadata=id_md,)
             format = filtered_table.view(BIOMV210Format)
-            path = result.batches.path_maker(batch)
+            # TODO: FIX THIS
+            path = result.batches.path_maker(batch=batch)
             qiime2.util.duplicate(str(format), path)
 #if this is called in a pipeline, you're doing something wrong
     artifact = ctx.make_artifact(FeatureTableBatches[table.type.fields[0]],
