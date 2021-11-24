@@ -93,7 +93,7 @@ plugin.pipelines.register_function(
     inputs={'table': FeatureTable[T]},
     parameters={'sample_metadata': Metadata,
                 'batch_types':List[Str]},
-    outputs=[FeatureTableBatches[T]],
+    outputs=[('feature_tables_by_batch', FeatureTableBatches[T])],
     name='',
     description=''
 )
