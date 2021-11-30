@@ -23,7 +23,7 @@ from q2_types.feature_table import BIOMV210Format
 
 import biom
 from typing import Optional, Tuple, Any, List
-from ..format_types import FilterFormat
+from ..format_types import FilterFormat, YamlDirectoryFormat
 # from q2_types.feature_table import FeatureTable
 # from q2_types.feature_data import Taxonomy
 
@@ -103,39 +103,48 @@ def feature_table_batch_artifact_list(ctx, batch_set):
     batch_dict =  batch_set.view(dict)
     for k, v in batch_dict:
         df = pd.DataFrame(index=pd.Series(v, name='ids'))
+        # This won't work b/c metadata is not an artifact
         metatdata_artifact = ctx.make_artifact(Metadata, df)
         artifact_list.append(metatdata_artifact)
 
         return artifact_list
+
+def make_id_filter(key, batches: YamlDirectoryFormat) -> FilterFormat:
+
+    # create a biom table for subsets of sample ids, one table for each batch - this may be factored out into a function
+    # use key to get ids from thing
+    batch_dict = batches.view(dict)
+    ids = batch_dict[key]
+
+    df = pd.DataFrame(index=pd.Series(ids, name='ids'))
+    # make the list of IDs into a FilterFormat
+    # FilterFormat should still look like a Series, but maybe not FeatureData?
+    # Maybe SampleData
+    id_md = qiime2.Metadata(
+        pd.DataFrame(index=pd.Index(ids, name='sampleid')))
 
 #pipelines input and output artifacts, going to be running other actions that are already returning artifacts
 def split_samples(ctx, table, sample_metadata, batch_types):
     # get rel actions
     filter_samples = ctx.get_action('feature_table', 'filter_samples')
     split_batches = ctx.get_action('decontam', 'split_batches') #give semantic type
-
-    # get batches of sample IDs - BatchSet:YAML, write test to test return type based on q2 action split batches rather than the python
-    batches, = split_batches(sample_metadata, batch_types)
-    batch_dict = batches.view(dict)
+    make_id_filter = ctx.get_action('decontam', 'make_id_filter')
 
     result = SampleBatchesDirFmt()
-    # create a biom table for subsets of sample ids, one table for each batch - this may be factored out into a function
-    for batch, ids in batch_dict.items():
-        if ids:
-            df = pd.DataFrame(index=pd.Series(ids, name='ids'))
-            # make the list of IDs into a Metadata for filter_samples
-            id_md = qiime2.Metadata(
-                pd.DataFrame(index=pd.Index(ids, name='sampleid')))
-            filtered_table, = filter_samples(table=table, metadata=id_md,)
-            format = filtered_table.view(BIOMV210Format)
-            # TODO: FIX THIS
-            path = result.batches.path_maker(batch=batch)
-            qiime2.util.duplicate(str(format), path)
-#if this is called in a pipeline, you're doing something wrong
-    artifact = ctx.make_artifact(FeatureTableBatches[table.type.fields[0]],
-                                 result)
+    # get batches of sample IDs - BatchSet:YAML, write test to test return type based on q2 action split batches rather than the python
+    batches, = split_batches(sample_metadata, batch_types)
+    ftbatches = []
 
-    return artifact
+    batch_dict = batches.view(dict)
+    for batch_id, sample_ids in batch_dict.items():
+        filter = make_id_filter(batch_id, batches)
+        if sample_ids:
+            filtered_table, = filter_samples(table, filter)
+        table_as_biomv210 = filtered_table.view(BIOMV210Format)
+        path = result.batches.path_maker(batch=batch_id)
+        qiime2.util.duplicate(str(table_as_biomv210), path)
+
+    return result
 
 # def split_samples(ctx, table, batch_dict):
     #batch_set.view(dict)

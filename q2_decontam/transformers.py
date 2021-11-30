@@ -44,6 +44,17 @@ def _3(ff: YamlFormat) -> dict:
     with ff.open() as fh:
         return yaml.safe_load(fh)
 
+
+# yaml to tsv
+@plugin.register_transformer
+def _4(ff: YamlFormat) -> tsvFileFormat:
+    with ff.open() as fh:
+        d = yaml.safe_load(fh)
+        for key, value in d.items():
+            # write series where:
+            # header=key
+            # if value in ids, 
+
 def tidy_data(metadata: qiime2.Metadata, tax_table: Taxonomy, feature_table: FeatureTable, outfile: str ):
     ASV_table = q2.Artifact.load(feature_table)
     ASV_df = ASV_table.view(q2.Metadata).to_dataframe()

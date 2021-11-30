@@ -42,7 +42,7 @@ GreetingDirectoryFormat = model.SingleFileDirectoryFormat(
 
 
 Filter = SemanticType('Filter',
-                            variant_of=FeatureData.field['type'])
+                            variant_of=SampleData.field['type'])
 
 class FilterFormat(model.TextFileFormat):
     def _validate_(self, *args):
